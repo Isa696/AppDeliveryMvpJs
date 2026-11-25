@@ -112,3 +112,23 @@ window.addEventListener("menuActualizado", () => {
   renderizarMenu();
 });
 
+function sincronizarCarrito() {
+  carrito = JSON.parse(
+    localStorage.getItem("carrito_olivia") || "{}"
+  );
+
+  renderizarMenu();
+  actualizarBotonCarrito();
+}
+
+// Cambios dentro de la misma pestaña.
+window.addEventListener("carritoActualizado", sincronizarCarrito);
+
+// Cambios desde otra pestaña del mismo sitio.
+window.addEventListener("storage", evento => {
+  if (evento.key === "carrito_olivia") {
+    sincronizarCarrito();
+    window.dispatchEvent(new Event("carritoActualizado"));
+  }
+});
+

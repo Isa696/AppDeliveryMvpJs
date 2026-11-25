@@ -6,7 +6,7 @@ export const CLAVE_MENU = "menu_olivia";
 export async function getMenuData() {
   const [menuResult, categoriesResult] = await Promise.all([
     supabase.from("Menu").select("*").order("id", { ascending: true }),
-    supabase.from("categories").select("idCatTable, categoria").order("idCatTable", { ascending: true })
+    supabase.from("categories").select("idCatTable, categoria, subtitulo").order("idCatTable", { ascending: true })
   ]);
 
   const errors = [
@@ -21,7 +21,7 @@ export async function getMenuData() {
   const categorias = categoriesResult.data.map(categoria => ({
     idCatTable: categoria.idCatTable,
     categoria: categoria.categoria,
-    subtitulo: "",
+    subtitulo: categoria.subtitulo ?? "",
     platos: []
   }));
   const categoriasPorId = new Map(

@@ -3,9 +3,7 @@ import { cargarMenu, guardarMenu, escaparHTML } from "./menuData.js";
 import { supabase } from "../backend/supabaseClient.js";
 import { getMenuData } from "./menuData.js";
 
-const USUARIO_ADMIN = "pepito2008";
-const CONTRASENA_ADMIN = "hellodude!";
-const CLAVE_SESION = "olivia_admin_activo";
+
 
 let menu = [];
 
@@ -33,30 +31,52 @@ async function mostrarPanelAdmin(estaAutenticado) {
   }
 }
 
-loginForm.addEventListener("submit", evento => {
+loginForm.addEventListener("submit", async evento => {
   evento.preventDefault();
-  const usuario = document.getElementById("username").value.trim();
-  const contrasena = document.getElementById("password").value.trim();
+  loginMessage.textContent = "";
 
-  if (usuario === USUARIO_ADMIN && contrasena === CONTRASENA_ADMIN) {
-    sessionStorage.setItem(CLAVE_SESION, "si");
-    loginMessage.textContent = "";
+  const email = document.getElementById("username").value.trim();
+  const password = document.getElementById("password").value;
+  const boton = loginForm.querySelector('button[type="submit"]');
+
+  boton.disabled = true;
+
+  try {
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if (error) {
+      loginMessage.textContent = "Email o contraseña incorrectos.";
+      return;
+    }
+
     loginForm.reset();
-    mostrarPanelAdmin(true);
-  } else {
-    loginMessage.textContent = "El usuario o la contraseña no son correctos.";
+  } catch (error) {
+    console.error("Error de inicio de sesión:", error);
+    loginMessage.textContent = "No se pudo conectar. Intentá nuevamente.";
+  } finally {
+    boton.disabled = false;
   }
 });
 
-document.getElementById("logout-button").addEventListener("click", () => {
-  sessionStorage.removeItem(CLAVE_SESION);
-  mostrarPanelAdmin(false);
+document.getElementById("logout-button").addEventListener("click", async () => {
+  try {
+    const { error } = await supabase.auth.signOut();
+
+    if (error) throw error;
+  } catch (error) {
+    console.error("Error al cerrar sesión:", error);
+    alert("No se pudo cerrar la sesión. Intentá nuevamente.");
+  }
 });
 
 categoryForm.addEventListener("submit", async evento => {
   evento.preventDefault();
   const idCatActual = document.getElementById("category-id").value;
   const nombre = document.getElementById("category-name").value.trim();
+  const subtitulo = document.getElementById("category-subtitle").value.trim();
   if (!nombre) return;
 
   try {
@@ -64,7 +84,7 @@ categoryForm.addEventListener("submit", async evento => {
       // ACTUALIZAR categoría existente en Supabase
       const { error } = await supabase
         .from("categories")
-        .update({ categoria: nombre })
+        .update({ categoria: nombre, subtitulo })
         .eq("idCatTable", Number(idCatActual));
 
       if (error) throw error;
@@ -73,7 +93,7 @@ categoryForm.addEventListener("submit", async evento => {
       // CREAR nueva categoría en Supabase
       const { error } = await supabase
         .from("categories")
-        .insert([{ categoria: nombre }]);
+        .insert([{ categoria: nombre, subtitulo }]);
 
       if (error) throw error;
       alert("¡Categoría creada con éxito en Supabase!");
@@ -144,7 +164,23 @@ productForm.addEventListener("submit", async evento => {
       if (error) throw error;
       alert("¡Producto guardado con éxito en Supabase!");
     }
+// Actualizar el producto si ya estaba agregado al carrito.
+const carrito = JSON.parse(
+  localStorage.getItem("carrito_olivia") || "{}"
+);
 
+if (idActual && carrito[idActual]) {
+  carrito[idActual] = {
+    ...carrito[idActual],
+    nombre,
+    descripcion,
+    precio,
+    imagen
+  };
+
+  localStorage.setItem("carrito_olivia", JSON.stringify(carrito));
+  window.dispatchEvent(new Event("carritoActualizado"));
+}
     limpiarFormularioProducto();
     menu = await getMenuData();
     dibujarPanel();
@@ -196,10 +232,8 @@ function dibujarCategorias() {
 // Escuchamos clics en Editar y Eliminar de las categorías
 categoryList.addEventListener("click", async evento => {
   const botonEditar = evento.target.closest("[data-edit-category]");
-  const botonEliminar = evento.target.closest("[data-delete-category]");
 
   if (botonEditar) editarCategoria(Number(botonEditar.dataset.editCategory));
-  if (botonEliminar) eliminarCategoria(Number(botonEliminar.dataset.deleteCategory));
 });
 
 // Carga los datos de la categoría en el formulario para editarla
@@ -209,6 +243,8 @@ function editarCategoria(idCatTable) {
 
   document.getElementById("category-id").value = categoriaEncontrada.idCatTable;
   document.getElementById("category-name").value = categoriaEncontrada.categoria;
+  document.getElementById("category-subtitle").value =
+  categoriaEncontrada.subtitulo ?? "";
   
   document.getElementById("category-submit-btn").textContent = "Actualizar categoría";
   document.getElementById("cancel-category-edit").hidden = false;
@@ -299,6 +335,15 @@ async function eliminarProducto(id) {
     const { error } = await supabase.from("Menu").delete().eq("id", id);
     if (error) throw error;
 
+    const carrito = JSON.parse(
+      localStorage.getItem("carrito_olivia") || "{}"
+    );
+
+    delete carrito[id];
+
+    localStorage.setItem("carrito_olivia", JSON.stringify(carrito));
+    window.dispatchEvent(new Event("carritoActualizado"));
+
     menu = await getMenuData();
     dibujarPanel();
   } catch (error) {
@@ -340,7 +385,11 @@ function limpiarFormularioProducto() {
   document.getElementById("cancel-edit-button").hidden = true;
 }
 
-mostrarPanelAdmin(sessionStorage.getItem(CLAVE_SESION) === "si");
+supabase.auth.onAuthStateChange((_evento, session) => {
+  setTimeout(() => {
+    mostrarPanelAdmin(Boolean(session));
+  }, 0);
+});
 
 // --- ACTUALIZACIÓN MASIVA DE PRECIOS POR CATEGORÍA ---
 const massPriceForm = document.getElementById("mass-price-form");
@@ -371,6 +420,19 @@ if (massPriceForm) {
 
       if (error) throw error;
 
+      const carrito = JSON.parse(
+        localStorage.getItem("carrito_olivia") || "{}"
+      );
+
+      for (const producto of categoriaSeleccionada.platos) {
+        if (carrito[producto.id]) {
+          carrito[producto.id].precio = nuevoPrecio;
+        }
+      }
+
+      localStorage.setItem("carrito_olivia", JSON.stringify(carrito));
+      window.dispatchEvent(new Event("carritoActualizado"));
+      
       alert(`¡Se actualizaron todos los precios de "${categoriaSeleccionada.categoria}" con éxito!`);
       massPriceForm.reset();
 
