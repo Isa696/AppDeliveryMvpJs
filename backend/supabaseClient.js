@@ -1,0 +1,11 @@
+//Configuracion persistencia de sesión
+
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { SUPABASE_KEY, SUPABASE_URL } from "../env.js";
+
+export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true
+  }
+});
