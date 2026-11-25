@@ -8,7 +8,7 @@
 
 ### 📑 Documentación visual del proyecto
 
-![Presentación del Proyecto](./docs/images/presentacion.jpeg)
+![Presentación del Proyecto](./docs/images/docs/images/presentacion.jpeg)
 
 ### 📋 2. Priorización MoSCoW
 
