@@ -17,7 +17,7 @@
 ### 📸 1. Preview de la App
 
 <!-- REEMPLAZAR RUTA CUANDO SUBAN LA IMAGEN -->
-![Preview AppDelivery](./docs/images/_/docs/images/app-preview.jpg)
+![Preview AppDelivery](./docs/images/app_preview.jpg)
 
 
 ## 🎯 Objetivo del MVP
