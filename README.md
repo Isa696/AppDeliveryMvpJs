@@ -8,7 +8,7 @@
 
 ### 📑 Documentación visual del proyecto
 
-![Presentación del Proyecto](./docs/images/docs/images/presentacion.jpeg)
+![Presentación del Proyecto](./docs/images/presentacion.jpeg)
 
 ### 📋 2. Priorización MoSCoW
 
@@ -17,7 +17,7 @@
 ### 📸 1. Preview de la App
 
 <!-- REEMPLAZAR RUTA CUANDO SUBAN LA IMAGEN -->
-![Preview AppDelivery](./docs/images/app-preview.jpg)
+![Preview AppDelivery](./docs/images/_docs/images/app-preview.jpg)
 
 
 ## 🎯 Objetivo del MVP
